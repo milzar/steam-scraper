@@ -1,6 +1,6 @@
 package main
 
-type Game struct {
+type StoreEntryDTO struct {
 	ID   int    `bson:"_id,omitempty"`
 	Name string `bson:"title,omitempty"`
 }

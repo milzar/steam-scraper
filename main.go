@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -39,11 +40,41 @@ func init() {
 }
 
 func main() {
+	//initStoreEntries()
+
+	filterGames()
+	//getReviews("570")
+}
+
+func filterGames() {
+	cursor := database.findStoreEntries()
+	fmt.Printf("Fetched entries from db \n")
+
+	for cursor.Next(context.TODO()) {
+		var storeEntry StoreEntryDTO
+		err := cursor.Decode(&storeEntry)
+
+		if err != nil {
+			log.Println("BSON unmarshalling error for storeEntry")
+			log.Fatal(err)
+		}
+
+		fmt.Println("Processing: " + storeEntry.Name)
+
+		details := getStoreEntryDetails(storeEntry.ID)
+
+		if details.Data.Type == "game" {
+			fmt.Printf("Saving %v \n", storeEntry.Name)
+			database.saveGame(storeEntry)
+		}
+
+	}
+}
+
+func initStoreEntries() {
 	storeEntries := fetchStoreEntries()
 
 	saveStoreEntries(storeEntries)
-
-	//getReviews("570")
 }
 
 func saveStoreEntries(entries []StoreEntry) {
@@ -62,7 +93,7 @@ func saveStoreEntries(entries []StoreEntry) {
 
 func saveEntry(entry StoreEntry, wg *sync.WaitGroup) {
 	defer wg.Done()
-	//if database.findGame(entry.AppId) {
+	//if database.findStoreEntry(entry.AppId) {
 	//	fmt.Println("Already found " + entry.Name)
 	//	return
 	//}
@@ -172,4 +203,17 @@ func getGameUrl(gameId string, cursor string) *url.URL {
 
 	base.RawQuery = params.Encode()
 	return base
+}
+
+func getStoreEntryDetails(id int) EntryDetails {
+	res, err := http.Get(steamEntryDetailsUrl + strconv.Itoa(id))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	entryDetailsResponse := EntryDetailsResponse{}
+
+	parseResponse(res, &entryDetailsResponse)
+
+	return entryDetailsResponse[strconv.Itoa(id)]
 }

@@ -11,6 +11,7 @@ import (
 )
 
 const gamesCollectionName = "games"
+const storeEntriesCollection = "store-entries"
 
 type DataBase struct {
 	db *mongo.Database
@@ -32,11 +33,11 @@ func (d *DataBase) initDatabase(databaseUrl string) {
 }
 
 func (d *DataBase) saveStoreEntry(entry StoreEntry) {
-	game := Game{
+	game := StoreEntryDTO{
 		ID:   entry.AppId,
 		Name: entry.Name,
 	}
-	gamesCollection := d.db.Collection(gamesCollectionName)
+	gamesCollection := d.db.Collection(storeEntriesCollection)
 
 	_, err := gamesCollection.InsertOne(context.TODO(), game)
 	if err != nil {
@@ -44,8 +45,33 @@ func (d *DataBase) saveStoreEntry(entry StoreEntry) {
 	}
 }
 
-func (d *DataBase) findGame(id int) bool {
-	gamesCollection := d.db.Collection(gamesCollectionName)
+func (d *DataBase) findStoreEntry(id int) bool {
+	gamesCollection := d.db.Collection(storeEntriesCollection)
 
 	return nil == gamesCollection.FindOne(context.TODO(), bson.M{"_id": id}).Err()
+}
+
+func (d *DataBase) findStoreEntries() *mongo.Cursor {
+	findOptions := options.Find()
+	// Sort by `price` field descending
+	findOptions.SetSort(bson.D{{"_id", 1}})
+
+	storeEntriesCollection := d.db.Collection(storeEntriesCollection)
+
+	res, err := storeEntriesCollection.Find(context.TODO(), bson.M{}, findOptions)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return res
+}
+
+func (d *DataBase) saveGame(entry StoreEntryDTO) {
+	gamesCollection := d.db.Collection(gamesCollectionName)
+
+	_, err := gamesCollection.InsertOne(context.TODO(), entry)
+	if err != nil {
+		log.Fatal(err)
+	}
 }
