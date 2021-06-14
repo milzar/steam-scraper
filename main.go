@@ -64,22 +64,25 @@ func filterGames() {
 			log.Println("BSON unmarshalling error for storeEntry")
 			log.Fatal(err)
 		}
-
-		fmt.Println("Processing: " + storeEntry.Name)
-
-		if storeEntry.ID <= findLastProcessedAppId() {
-			fmt.Printf("Skipping %s %v\n", storeEntry.Name, storeEntry.ID)
-			continue
-		}
-
-		details := getStoreEntryDetails(storeEntry.ID)
-
-		if details.Data.Type == "game" {
-			fmt.Printf("Saving %v %v \n\n", storeEntry.Name, storeEntry.ID)
-			database.saveGame(storeEntry)
-		}
+		processStoreEntry(storeEntry)
 
 		updateProgress(storeEntry.ID)
+	}
+}
+
+func processStoreEntry(storeEntry StoreEntryDTO) {
+	fmt.Println("Processing: " + storeEntry.Name)
+
+	if storeEntry.ID <= findLastProcessedAppId() {
+		fmt.Printf("Skipping %s %v\n", storeEntry.Name, storeEntry.ID)
+		return
+	}
+
+	details := getStoreEntryDetails(storeEntry.ID)
+
+	if details.Data.Type == "game" {
+		fmt.Printf("Saving %v %v \n\n", storeEntry.Name, storeEntry.ID)
+		database.saveGame(storeEntry)
 	}
 }
 
