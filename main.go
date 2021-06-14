@@ -3,7 +3,8 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"fmt"
+	"errors"
+	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -40,12 +41,27 @@ var databaseUrl = os.Getenv("DATABASE_URL")
 //dota 2 570
 func init() {
 	database.initDatabase(databaseUrl)
+
+	initLogs()
+}
+
+func initLogs() {
+	logFile, err := os.OpenFile("log.txt", os.O_CREATE|os.O_APPEND|os.O_RDWR, 0666)
+	if err != nil {
+		panic(err)
+	}
+	mw := io.MultiWriter(os.Stdout, logFile)
+	log.SetOutput(mw)
 }
 
 func main() {
+	log.Println("Starting application")
 	//initStoreEntries()
 
 	filterGames()
+	//processStoreEntry(StoreEntryDTO{
+	//	ID: 204450,
+	//})
 	//getReviews("570")
 }
 
@@ -66,50 +82,66 @@ func filterGames() {
 		processedGamesMap[entry.ID] = true
 	}
 
-	fmt.Printf("Fetched entries from db \n")
+	log.Printf("Fetched entries from db \n")
 
 	lastProcessedId := findLastProcessedAppId()
-	fmt.Printf("Last processed id %v\n\n\n", lastProcessedId)
+	log.Printf("Last processed id %v\n\n\n", lastProcessedId)
 
 	savedGamesCount := 0
 
-	for _, entry := range storeEntriesList {
+	for i := 0; i < len(storeEntriesList); i++ {
+		entry := storeEntriesList[i]
+
 		if processedGamesMap[entry.ID] {
-			fmt.Printf("\n Already processed game %v \n\n\n", entry)
+			log.Printf("\n Already processed game %v \n\n\n", entry)
 			continue
 		}
-		if processStoreEntry(entry) {
+		isGame, steamError := processStoreEntry(entry)
+
+		if steamError != nil {
+			const waitSeconds = 300
+			log.Println("Rate limit reached")
+			log.Printf("\nWaiting for %vs \n", waitSeconds)
+			time.Sleep(time.Second * waitSeconds)
+
+			i--
+		}
+		if isGame {
 			savedGamesCount++
 
-			fmt.Printf("\n\n\n Saved %v new games \n\n", savedGamesCount)
+			log.Printf("\n\n\n Saved %v new games \n\n", savedGamesCount)
 		}
 		updateProgress(entry.ID)
 	}
 }
 
-func processStoreEntry(storeEntry StoreEntryDTO) bool {
-	fmt.Printf("Processing: %v %v ----------------\n", storeEntry.Name, storeEntry.ID)
+func processStoreEntry(storeEntry StoreEntryDTO) (bool, error) {
+	log.Printf("Processing: %v %v ----------------\n", storeEntry.Name, storeEntry.ID)
 
 	if storeEntry.ID <= findLastProcessedAppId() {
-		fmt.Printf("Skipping %s %v\n", storeEntry.Name, storeEntry.ID)
-		return false
+		log.Printf("Skipping %s %v\n", storeEntry.Name, storeEntry.ID)
+		return false, nil
 	}
 
-	details := getStoreEntryDetails(storeEntry.ID)
+	details, steamAPIerr := getStoreEntryDetails(storeEntry.ID)
+
+	if steamAPIerr != nil {
+		return false, steamAPIerr
+	}
 
 	if details.Data.Type == "game" {
-		fmt.Printf("Saving %v %v \n\n", storeEntry.Name, storeEntry.ID)
+		log.Printf("Saving %v %v \n\n", storeEntry.Name, storeEntry.ID)
 		database.saveGame(storeEntry)
-		return true
+		return true, nil
 	}
-	return false
+	return false, nil
 
 }
 
 func findLastProcessedAppId() int {
 
 	if !fileExists(progressfilename) {
-		fmt.Println("Previous progress not found")
+		log.Println("Previous progress not found")
 		updateProgress(0)
 		return 0
 	}
@@ -159,7 +191,7 @@ func initStoreEntries() {
 func saveStoreEntries(entries []StoreEntry) {
 	defer timeTrack(time.Now(), "saveStoreEntries")
 
-	fmt.Printf("Saving %v entries into database\n", len(entries))
+	log.Printf("Saving %v entries into database\n", len(entries))
 
 	var wg sync.WaitGroup
 
@@ -173,13 +205,13 @@ func saveStoreEntries(entries []StoreEntry) {
 func saveEntry(entry StoreEntry, wg *sync.WaitGroup) {
 	defer wg.Done()
 	//if database.findStoreEntry(entry.AppId) {
-	//	fmt.Println("Already found " + entry.Name)
+	//	log.Println("Already found " + entry.Name)
 	//	return
 	//}
-	//fmt.Printf("Saving %s\n", entry.Name)
+	//log.Printf("Saving %s\n", entry.Name)
 
 	setMe(getMe() + 1)
-	fmt.Printf("Saved %v games\n", getMe())
+	log.Printf("Saved %v games\n", getMe())
 	database.saveStoreEntry(entry)
 
 	//res, err := http.Get(steamEntryDetailsUrl + strconv.Itoa(entry.AppId))
@@ -192,7 +224,7 @@ func saveEntry(entry StoreEntry, wg *sync.WaitGroup) {
 	//parseResponse(res, &entryDetailsResponse)
 
 	//if entryDetailsResponse[strconv.Itoa(entry.AppId)].Data.Type == "game" {
-	//	fmt.Printf("Saving %s\n", entry.Name)
+	//	log.Printf("Saving %s\n", entry.Name)
 	//	database.saveStoreEntry(entry)
 	//}
 }
@@ -200,7 +232,7 @@ func saveEntry(entry StoreEntry, wg *sync.WaitGroup) {
 func fetchStoreEntries() []StoreEntry {
 	defer timeTrack(time.Now(), "fetchStoreEntries")
 
-	fmt.Println("Fetching items from steam store")
+	log.Println("Fetching items from steam store")
 
 	res, err := http.Get(steamStoreEntriesUrl)
 	if err != nil {
@@ -208,7 +240,7 @@ func fetchStoreEntries() []StoreEntry {
 	}
 	steamEntriesResponse := StoreEntriesResponse{}
 	parseResponse(res, &steamEntriesResponse)
-	fmt.Printf("Found %v entries\n", len(steamEntriesResponse.AppList.Apps))
+	log.Printf("Found %v entries\n", len(steamEntriesResponse.AppList.Apps))
 	return steamEntriesResponse.AppList.Apps
 }
 
@@ -224,7 +256,7 @@ func getReviews(gameId string) {
 
 	res, err := http.Get(steamUrl.String())
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 	}
 	set["*"] = true
 	gameResponse := GameResponse{}
@@ -236,18 +268,18 @@ func getReviews(gameId string) {
 
 		steamUrl = getGameUrl(gameId, gameResponse.Cursor)
 
-		fmt.Println("Url is " + steamUrl.String())
+		log.Println("Url is " + steamUrl.String())
 
 		res, err := http.Get(steamUrl.String())
 		if err != nil {
-			fmt.Println(err)
+			log.Println(err)
 		}
 		gameResponse = GameResponse{}
 		parseResponse(res, gameResponse)
 		reviewCount += len(gameResponse.Reviews)
 	}
 	end := time.Now()
-	fmt.Printf("Total no of reviews: %v in %v s", strconv.Itoa(reviewCount), end.Unix()-start.Unix())
+	log.Printf("Total no of reviews: %v in %v s", strconv.Itoa(reviewCount), end.Unix()-start.Unix())
 }
 
 func parseResponse(res *http.Response, value interface{}) {
@@ -256,11 +288,11 @@ func parseResponse(res *http.Response, value interface{}) {
 		log.Fatal(err)
 	}
 
-	//fmt.Println(string(bodyBytes))
+	//log.Println(string(bodyBytes))
 
 	err = json.Unmarshal(bodyBytes, value)
 
-	//fmt.Printf("%+v\n", gr)
+	//log.Printf("%+v\n", gr)
 }
 
 func getGameUrl(gameId string, cursor string) *url.URL {
@@ -284,15 +316,18 @@ func getGameUrl(gameId string, cursor string) *url.URL {
 	return base
 }
 
-func getStoreEntryDetails(id int) EntryDetails {
+func getStoreEntryDetails(id int) (EntryDetails, error) {
 	res, err := http.Get(steamEntryDetailsUrl + strconv.Itoa(id))
 	if err != nil {
 		log.Fatal(err)
 	}
-
+	if res.StatusCode != 200 {
+		log.Printf("\n\n Steam API failed \n\n\n\n")
+		return EntryDetails{}, errors.New("rate limit exceeded")
+	}
 	entryDetailsResponse := EntryDetailsResponse{}
 
 	parseResponse(res, &entryDetailsResponse)
 
-	return entryDetailsResponse[strconv.Itoa(id)]
+	return entryDetailsResponse[strconv.Itoa(id)], nil
 }
