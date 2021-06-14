@@ -96,6 +96,12 @@ func filterGames() {
 			log.Printf("\n Already processed game %v \n\n\n", entry)
 			continue
 		}
+
+		if entry.ID <= lastProcessedId {
+			log.Printf("Skipping %s %v\n", entry.Name, entry.ID)
+			continue
+		}
+
 		isGame, steamError := processStoreEntry(entry)
 
 		if steamError != nil {
@@ -118,11 +124,6 @@ func filterGames() {
 
 func processStoreEntry(storeEntry StoreEntryDTO) (bool, error) {
 	log.Printf("Processing: %v %v ----------------\n", storeEntry.Name, storeEntry.ID)
-
-	if storeEntry.ID <= findLastProcessedAppId() {
-		log.Printf("Skipping %s %v\n", storeEntry.Name, storeEntry.ID)
-		return false, nil
-	}
 
 	details, steamAPIerr := getStoreEntryDetails(storeEntry.ID)
 
