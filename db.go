@@ -75,3 +75,20 @@ func (d *DataBase) saveGame(entry StoreEntryDTO) {
 		log.Fatal(err)
 	}
 }
+
+func (d *DataBase) findGames() *mongo.Cursor {
+	findOptions := options.Find()
+	// Sort by `price` field descending
+	findOptions.SetSort(bson.D{{"_id", 1}})
+
+	storeEntriesCollection := d.db.Collection(gamesCollectionName)
+
+	res, err := storeEntriesCollection.Find(context.TODO(), bson.M{}, findOptions)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return res
+
+}

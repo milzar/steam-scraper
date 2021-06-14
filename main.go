@@ -50,32 +50,49 @@ func main() {
 }
 
 func filterGames() {
+	var storeEntriesList []StoreEntryDTO
 	cursor := database.findStoreEntries()
+	err := cursor.All(context.TODO(), &storeEntriesList)
+	check(err)
+
+	var processedGamesList []StoreEntryDTO
+	cursor = database.findGames()
+	err = cursor.All(context.TODO(), &processedGamesList)
+	check(err)
+
+	processedGamesMap := make(map[int]bool)
+
+	for _, entry := range processedGamesList {
+		processedGamesMap[entry.ID] = true
+	}
+
 	fmt.Printf("Fetched entries from db \n")
 
 	lastProcessedId := findLastProcessedAppId()
 	fmt.Printf("Last processed id %v\n\n\n", lastProcessedId)
 
-	for cursor.Next(context.TODO()) {
-		var storeEntry StoreEntryDTO
-		err := cursor.Decode(&storeEntry)
+	savedGamesCount := 0
 
-		if err != nil {
-			log.Println("BSON unmarshalling error for storeEntry")
-			log.Fatal(err)
+	for _, entry := range storeEntriesList {
+		if processedGamesMap[entry.ID] {
+			fmt.Printf("\n Already processed game %v \n\n\n", entry)
+			continue
 		}
-		processStoreEntry(storeEntry)
+		if processStoreEntry(entry) {
+			savedGamesCount++
 
-		updateProgress(storeEntry.ID)
+			fmt.Printf("\n\n\n Saved %v new games \n\n", savedGamesCount)
+		}
+		updateProgress(entry.ID)
 	}
 }
 
-func processStoreEntry(storeEntry StoreEntryDTO) {
-	fmt.Println("Processing: " + storeEntry.Name)
+func processStoreEntry(storeEntry StoreEntryDTO) bool {
+	fmt.Printf("Processing: %v %v ----------------\n", storeEntry.Name, storeEntry.ID)
 
 	if storeEntry.ID <= findLastProcessedAppId() {
 		fmt.Printf("Skipping %s %v\n", storeEntry.Name, storeEntry.ID)
-		return
+		return false
 	}
 
 	details := getStoreEntryDetails(storeEntry.ID)
@@ -83,7 +100,10 @@ func processStoreEntry(storeEntry StoreEntryDTO) {
 	if details.Data.Type == "game" {
 		fmt.Printf("Saving %v %v \n\n", storeEntry.Name, storeEntry.ID)
 		database.saveGame(storeEntry)
+		return true
 	}
+	return false
+
 }
 
 func findLastProcessedAppId() int {
