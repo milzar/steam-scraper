@@ -10,12 +10,15 @@ import (
 	"net/url"
 	"os"
 	"strconv"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
 )
 
 var savedGames int32
+
+const progressfilename = "progress.txt"
 
 func getMe() int32 {
 	return atomic.LoadInt32(&savedGames)
@@ -50,6 +53,9 @@ func filterGames() {
 	cursor := database.findStoreEntries()
 	fmt.Printf("Fetched entries from db \n")
 
+	lastProcessedId := findLastProcessedAppId()
+	fmt.Printf("Last processed id %v\n\n\n", lastProcessedId)
+
 	for cursor.Next(context.TODO()) {
 		var storeEntry StoreEntryDTO
 		err := cursor.Decode(&storeEntry)
@@ -61,14 +67,64 @@ func filterGames() {
 
 		fmt.Println("Processing: " + storeEntry.Name)
 
+		if storeEntry.ID <= findLastProcessedAppId() {
+			fmt.Printf("Skipping %s %v\n", storeEntry.Name, storeEntry.ID)
+			continue
+		}
+
 		details := getStoreEntryDetails(storeEntry.ID)
 
 		if details.Data.Type == "game" {
-			fmt.Printf("Saving %v \n", storeEntry.Name)
+			fmt.Printf("Saving %v %v \n\n", storeEntry.Name, storeEntry.ID)
 			database.saveGame(storeEntry)
 		}
 
+		updateProgress(storeEntry.ID)
 	}
+}
+
+func findLastProcessedAppId() int {
+
+	if !fileExists(progressfilename) {
+		fmt.Println("Previous progress not found")
+		updateProgress(0)
+		return 0
+	}
+
+	data, err := ioutil.ReadFile(progressfilename)
+
+	check(err)
+
+	fileStr := string(data)
+
+	digits := strings.TrimSuffix(fileStr, "\n")
+
+	id, err := strconv.Atoi(digits)
+	check(err)
+
+	return id
+}
+
+func updateProgress(i int) {
+	if !fileExists(progressfilename) {
+		f, err := os.Create(progressfilename)
+		check(err)
+
+		_, err = f.WriteString("0")
+		check(err)
+
+		defer f.Close()
+		return
+	}
+
+	f, err := os.OpenFile(progressfilename, os.O_WRONLY, os.ModeAppend)
+	check(err)
+
+	_, err = f.WriteString(strconv.Itoa(i))
+
+	check(err)
+
+	defer f.Close()
 }
 
 func initStoreEntries() {
