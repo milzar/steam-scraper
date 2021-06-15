@@ -90,6 +90,9 @@ func processReviews() {
 		saveGameReviews(gameReview)
 
 		log.Printf("Finished processing reviews for %v %v\n\n", game.Name, game.ID)
+
+		log.Printf("\n %.2f percent done\n", (float32(i)/float32(len(games)))*100)
+
 		time.Sleep(time.Minute * 5)
 	}
 
@@ -153,6 +156,8 @@ func filterGames() {
 			log.Printf("\n\n\n Saved %v new games \n\n", savedGamesCount)
 		}
 		updateProgress(entry.ID)
+
+		log.Printf("%.2f percent done\n", (float32(i)/float32(len(storeEntriesList)))*100)
 	}
 }
 
