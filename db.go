@@ -12,6 +12,7 @@ import (
 
 const gamesCollectionName = "games"
 const storeEntriesCollection = "store-entries"
+const gameReviewsCollection = "game-reviews"
 
 type DataBase struct {
 	db *mongo.Database
@@ -78,7 +79,6 @@ func (d *DataBase) saveGame(entry StoreEntryDTO) {
 
 func (d *DataBase) findGames() *mongo.Cursor {
 	findOptions := options.Find()
-	// Sort by `price` field descending
 	findOptions.SetSort(bson.D{{"_id", 1}})
 
 	storeEntriesCollection := d.db.Collection(gamesCollectionName)
@@ -91,4 +91,30 @@ func (d *DataBase) findGames() *mongo.Cursor {
 
 	return res
 
+}
+
+func (d *DataBase) findLastProcessedReview() GameReviewDTO {
+	findOptions := options.FindOne()
+	findOptions.SetSort(bson.D{{"_id", -1}})
+
+	gamesCollection := d.db.Collection(gameReviewsCollection)
+
+	res := gamesCollection.FindOne(context.TODO(), bson.M{}, findOptions)
+
+	var game GameReviewDTO
+	err := res.Decode(&game)
+
+	if err != nil {
+		log.Println("Error while fetching last reviewed game")
+		return GameReviewDTO{AppId: 0}
+	}
+
+	return game
+}
+
+func (d *DataBase) saveGameReview(review GameReviewDTO) {
+	gamesCollection := d.db.Collection(gameReviewsCollection)
+
+	_, err := gamesCollection.InsertOne(context.TODO(), review)
+	check(err)
 }

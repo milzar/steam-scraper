@@ -6,6 +6,7 @@ type ReviewAuthor struct {
 
 type GameReview struct {
 	Author ReviewAuthor `json:"author"`
+	Review string       `json:"review"`
 }
 
 type GameResponse struct {
