@@ -326,7 +326,7 @@ func getReviews(gameId int) (GameReviewDTO, error) {
 func appendReviews(gameResponse GameResponse, gameReviews GameReviewDTO) GameReviewDTO {
 	for _, review := range gameResponse.Reviews {
 		gameReviews.Users = append(gameReviews.Users, review.Author.SteamId)
-		gameReviews.Reviews = append(gameReviews.Reviews, review.Review)
+		//gameReviews.Reviews = append(gameReviews.Reviews, review.Review)
 	}
 	return gameReviews
 }
