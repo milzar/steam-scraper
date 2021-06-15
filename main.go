@@ -318,7 +318,7 @@ func getReviews(gameId int) (GameReviewDTO, error) {
 	}
 
 	end := time.Now()
-	log.Printf("Total no of reviews: %v in %v s", strconv.Itoa(len(gameReviews.Reviews)), end.Unix()-start.Unix())
+	log.Printf("Total no of reviews: %v in %v s", strconv.Itoa(len(gameReviews.Users)), end.Unix()-start.Unix())
 
 	return gameReviews, nil
 }
