@@ -276,6 +276,7 @@ func getReviews(gameId int) (GameReviewDTO, error) {
 	set := make(map[string]bool)
 
 	steamUrl := getGameUrl(gameIdString, "*")
+	log.Println("Url is " + steamUrl.String())
 
 	res, err := http.Get(steamUrl.String())
 	check(err)
@@ -289,6 +290,7 @@ func getReviews(gameId int) (GameReviewDTO, error) {
 	gameResponse := GameResponse{}
 	parseResponse(res, &gameResponse)
 
+	log.Printf("\n Fetched %v reviews \n", len(gameResponse.Reviews))
 	for _, review := range gameResponse.Reviews {
 		gameReviews.Users = append(gameReviews.Users, review.Author.SteamId)
 		gameReviews.Reviews = append(gameReviews.Reviews, review.Review)
@@ -310,6 +312,8 @@ func getReviews(gameId int) (GameReviewDTO, error) {
 
 		gameResponse = GameResponse{}
 		parseResponse(res, gameResponse)
+
+		log.Printf("\n Fetched %v reviews \n", len(gameResponse.Reviews))
 
 		for _, review := range gameResponse.Reviews {
 			gameReviews.Users = append(gameReviews.Users, review.Author.SteamId)
