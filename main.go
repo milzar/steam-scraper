@@ -291,10 +291,8 @@ func getReviews(gameId int) (GameReviewDTO, error) {
 	parseResponse(res, &gameResponse)
 
 	log.Printf("\n Fetched %v reviews \n", len(gameResponse.Reviews))
-	for _, review := range gameResponse.Reviews {
-		gameReviews.Users = append(gameReviews.Users, review.Author.SteamId)
-		gameReviews.Reviews = append(gameReviews.Reviews, review.Review)
-	}
+
+	gameReviews = appendReviews(gameResponse, gameReviews)
 
 	for !set[gameResponse.Cursor] {
 		set[gameResponse.Cursor] = true
@@ -310,15 +308,11 @@ func getReviews(gameId int) (GameReviewDTO, error) {
 			return GameReviewDTO{}, errors.New("api rate limit exceeded")
 		}
 
-		gameResponse = GameResponse{}
-		parseResponse(res, gameResponse)
+		parseResponse(res, &gameResponse)
 
 		log.Printf("\n Fetched %v reviews \n", len(gameResponse.Reviews))
 
-		for _, review := range gameResponse.Reviews {
-			gameReviews.Users = append(gameReviews.Users, review.Author.SteamId)
-			gameReviews.Reviews = append(gameReviews.Reviews, review.Review)
-		}
+		gameReviews = appendReviews(gameResponse, gameReviews)
 
 		time.Sleep(time.Second * 3)
 	}
@@ -327,6 +321,14 @@ func getReviews(gameId int) (GameReviewDTO, error) {
 	log.Printf("Total no of reviews: %v in %v s", strconv.Itoa(len(gameReviews.Reviews)), end.Unix()-start.Unix())
 
 	return gameReviews, nil
+}
+
+func appendReviews(gameResponse GameResponse, gameReviews GameReviewDTO) GameReviewDTO {
+	for _, review := range gameResponse.Reviews {
+		gameReviews.Users = append(gameReviews.Users, review.Author.SteamId)
+		gameReviews.Reviews = append(gameReviews.Reviews, review.Review)
+	}
+	return gameReviews
 }
 
 func parseResponse(res *http.Response, value interface{}) {
