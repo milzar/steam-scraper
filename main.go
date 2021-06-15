@@ -39,6 +39,8 @@ var databaseUrl = os.Getenv("DATABASE_URL")
 //csgo 730
 //siege 359550
 //dota 2 570
+//dota 2 570
+
 func init() {
 	database.initDatabase(databaseUrl)
 
