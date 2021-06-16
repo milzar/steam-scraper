@@ -86,8 +86,12 @@ func processReviews() {
 
 			time.Sleep(time.Minute * 15)
 			i--
+			continue
 		}
-		saveGameReviews(gameReview)
+
+		if len(gameReview.Reviews) > 100 {
+			saveGameReviews(gameReview)
+		}
 
 		log.Printf("Finished processing reviews for %v %v\n\n", game.Name, game.ID)
 
@@ -278,7 +282,7 @@ func getReviews(gameId int) (GameReviewDTO, error) {
 
 	gameReviews.AppId = gameId
 
-	set := make(map[string]bool)
+	cursorMap := make(map[string]bool)
 
 	steamUrl := getGameUrl(gameIdString, "*")
 	log.Println("Url is " + steamUrl.String())
@@ -291,16 +295,24 @@ func getReviews(gameId int) (GameReviewDTO, error) {
 		return GameReviewDTO{}, errors.New("api rate limit exceeded")
 	}
 
-	set["*"] = true
+	cursorMap["*"] = true
 	gameResponse := GameResponse{}
 	parseResponse(res, &gameResponse)
+
+	log.Printf("Game has %v reviews\n", gameResponse.QuerySummary.TotalReviews)
+	const minReviewCount = 1000
+
+	if gameResponse.QuerySummary.TotalReviews < minReviewCount {
+		log.Printf("Skipping game \n")
+		return gameReviews, nil
+	}
 
 	log.Printf("\n Fetched %v reviews \n", len(gameResponse.Reviews))
 
 	gameReviews = appendReviews(gameResponse, gameReviews)
 
-	for !set[gameResponse.Cursor] {
-		set[gameResponse.Cursor] = true
+	for !cursorMap[gameResponse.Cursor] {
+		cursorMap[gameResponse.Cursor] = true
 
 		steamUrl = getGameUrl(gameIdString, gameResponse.Cursor)
 
