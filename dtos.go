@@ -6,7 +6,7 @@ type StoreEntryDTO struct {
 }
 
 type GameReviewDTO struct {
-	AppId   int      `bson:"_id,omitempty"`
-	Users   []string `bson:"users,omitempty"`
-	Reviews []string `bson:"reviews,omitempty"`
+	AppId int      `bson:"_id,omitempty"`
+	Users []string `bson:"users,omitempty"`
+	//Reviews []string `bson:"reviews,omitempty"`
 }

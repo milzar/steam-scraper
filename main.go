@@ -89,7 +89,7 @@ func processReviews() {
 			continue
 		}
 
-		if len(gameReview.Reviews) > 100 {
+		if len(gameReview.Users) > 100 {
 			saveGameReviews(gameReview)
 		}
 
