@@ -88,16 +88,19 @@ func processReviews() {
 			i--
 			continue
 		}
+		var gameSaved bool
 
 		if len(gameReview.Users) > 100 {
 			saveGameReviews(gameReview)
+			gameSaved = true
 		}
 
 		log.Printf("Finished processing reviews for %v %v\n\n", game.Name, game.ID)
-
 		log.Printf("\n %.2f percent done\n", (float32(i)/float32(len(games)))*100)
 
-		time.Sleep(time.Minute * 5)
+		if gameSaved {
+			time.Sleep(time.Minute * 5)
+		}
 	}
 
 }
