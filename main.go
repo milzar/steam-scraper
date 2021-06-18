@@ -103,6 +103,7 @@ func processReviews() {
 }
 
 func saveGameReviews(review GameReviewDTO) {
+	log.Printf("\n Saving reviews \n\n")
 	database.saveGameReview(review)
 }
 
