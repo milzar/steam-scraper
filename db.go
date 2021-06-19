@@ -121,6 +121,8 @@ func (d *DataBase) saveGameReview(review GameReviewDTO) {
 }
 
 func (d *DataBase) findGameReviews() *mongo.Cursor {
+	defer timeTrack(time.Now(), "findGameReviews")
+
 	findOptions := options.Find()
 	findOptions.SetSort(bson.D{{"_id", 1}})
 
@@ -156,6 +158,9 @@ func (d *DataBase) updateUserLink(link UserLinkDTO) {
 
 	userLinksCollection := d.db.Collection(userLinksCollection)
 
-	_, err := userLinksCollection.UpdateOne(context.TODO(), bson.M{"_id": link.UserId}, link, updateOptions)
+	update := bson.M{
+		"$set": link,
+	}
+	_, err := userLinksCollection.UpdateOne(context.TODO(), bson.M{"_id": link.UserId}, update, updateOptions)
 	check(err)
 }

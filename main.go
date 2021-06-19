@@ -68,6 +68,8 @@ func main() {
 }
 
 func processUserLinks() {
+	log.Println("Processing User links")
+
 	cursor := database.findGameReviews()
 
 	for cursor.Next(context.TODO()) {
@@ -75,12 +77,16 @@ func processUserLinks() {
 		err := cursor.Decode(&review)
 		check(err)
 
+		log.Printf("\n\nProcessing %v\n\n", review.AppId)
+
 		saveUserGameLinks(review)
 
 	}
 }
 
 func saveUserGameLinks(review GameReviewDTO) {
+	defer timeTrack(time.Now(), "saveUserGameLinks")
+
 	userIds := review.Users
 
 	for _, userId := range userIds {
