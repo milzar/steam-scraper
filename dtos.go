@@ -10,3 +10,8 @@ type GameReviewDTO struct {
 	Users []string `bson:"users,omitempty"`
 	//Reviews []string `bson:"reviews,omitempty"`
 }
+
+type UserLinkDTO struct {
+	UserId        string `bson:"_id,omitempty"`
+	GamesReviewed []int  `bson:"gamesReviewed,omitempty"`
+}

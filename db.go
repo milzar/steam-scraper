@@ -13,6 +13,7 @@ import (
 const gamesCollectionName = "games"
 const storeEntriesCollection = "store-entries"
 const gameReviewsCollection = "game-reviews"
+const userLinksCollection = "user-links"
 
 type DataBase struct {
 	db *mongo.Database
@@ -116,5 +117,45 @@ func (d *DataBase) saveGameReview(review GameReviewDTO) {
 	gamesCollection := d.db.Collection(gameReviewsCollection)
 
 	_, err := gamesCollection.InsertOne(context.TODO(), review)
+	check(err)
+}
+
+func (d *DataBase) findGameReviews() *mongo.Cursor {
+	findOptions := options.Find()
+	findOptions.SetSort(bson.D{{"_id", 1}})
+
+	gameReviewsCollection := d.db.Collection(gameReviewsCollection)
+
+	res, err := gameReviewsCollection.Find(context.TODO(), bson.M{}, findOptions)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return res
+}
+
+func (d *DataBase) findUserLink(userId string) UserLinkDTO {
+	userLinksCollection := d.db.Collection(userLinksCollection)
+
+	res := userLinksCollection.FindOne(context.TODO(), bson.M{"_id": userId})
+
+	var userLink UserLinkDTO
+
+	if res.Err() == nil {
+		err := res.Decode(&userLink)
+		check(err)
+	}
+
+	return userLink
+}
+
+func (d *DataBase) updateUserLink(link UserLinkDTO) {
+	updateOptions := options.Update()
+	updateOptions.SetUpsert(true)
+
+	userLinksCollection := d.db.Collection(userLinksCollection)
+
+	_, err := userLinksCollection.UpdateOne(context.TODO(), bson.M{"_id": link.UserId}, link, updateOptions)
 	check(err)
 }
