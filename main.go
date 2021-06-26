@@ -354,7 +354,7 @@ func getReviews(gameId int) (GameReviewDTO, error) {
 	parseResponse(res, &gameResponse)
 
 	log.Printf("Game has %v reviews\n", gameResponse.QuerySummary.TotalReviews)
-	const minReviewCount = 1000
+	const minReviewCount = 2500
 
 	if gameResponse.QuerySummary.TotalReviews < minReviewCount {
 		log.Printf("Skipping game \n")
