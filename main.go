@@ -67,7 +67,105 @@ func main() {
 
 	//processUserLinks()
 
-	populateGameSimilarities()
+	//populateGameSimilarities()
+
+	generateGraph()
+}
+
+func generateGraph() {
+	defer timeTrack(time.Now(), "generateGraph")
+
+	log.Println("Generating graph")
+
+	gameNodesMap := make(map[int]*GameNode)
+
+	reviews := getAllGameReviews()
+	for _, review := range reviews {
+		gameId := review.AppId
+		gameNodesMap[gameId] = &GameNode{Id: review.AppId}
+		gameNodesMap[gameId].Value = len(review.Users)
+	}
+
+	gameLinks := getAllGameLinks()
+
+	for _, gameLink := range gameLinks {
+		var relatedGames []int
+
+		for _, game := range gameLink.SimilarGames {
+			relatedGames = append(relatedGames, game.GameId)
+		}
+
+		gameNodesMap[gameLink.GameId].LinkedIds = relatedGames
+
+	}
+
+	gameNameMap := populateGameNameMap()
+
+	for gameId, node := range gameNodesMap {
+		node.Name = gameNameMap[gameId]
+
+		for _, linkedId := range node.LinkedIds {
+			node.Links = append(node.Links, gameNameMap[linkedId])
+		}
+	}
+
+	var graph Graph
+	var nodesList []GameNode
+	for _, node := range gameNodesMap {
+		nodesList = append(nodesList, *node)
+	}
+
+	graph.Data = nodesList
+
+	log.Println("Saving graph")
+	//database.saveGraph(graph)
+
+	file, _ := json.MarshalIndent(graph, "", " ")
+
+	_ = ioutil.WriteFile("test.json", file, 0644)
+
+}
+
+func populateGameNameMap() map[int]string {
+	defer timeTrack(time.Now(), "populateGameNameMap")
+
+	nameMap := make(map[int]string)
+
+	storeEntries := getAllStoreEntries()
+
+	for _, storeEntry := range storeEntries {
+		nameMap[storeEntry.ID] = storeEntry.Name
+	}
+	return nameMap
+}
+
+func getAllStoreEntries() []StoreEntryDTO {
+	var storeEntries []StoreEntryDTO
+	cursor := database.findStoreEntries()
+	err := cursor.All(context.TODO(), &storeEntries)
+	check(err)
+	return storeEntries
+
+}
+
+func getAllGameLinks() []GameLinkDTO {
+	defer timeTrack(time.Now(), "getAllGameLinks")
+
+	var gameLinks []GameLinkDTO
+	cursor := database.findAllGameLinks()
+	err := cursor.All(context.TODO(), &gameLinks)
+	check(err)
+	return gameLinks
+}
+
+func getAllGameReviews() []GameReviewDTO {
+	defer timeTrack(time.Now(), "getAllGameReviews")
+
+	var gameReviewsList []GameReviewDTO
+	cursor := database.findGameReviews()
+	err := cursor.All(context.TODO(), &gameReviewsList)
+	check(err)
+	return gameReviewsList
 }
 
 func populateGameSimilarities() {

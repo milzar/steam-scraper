@@ -15,6 +15,7 @@ const storeEntriesCollection = "store-entries"
 const gameReviewsCollection = "game-reviews"
 const userLinksCollection = "user-links"
 const gameLinksCollection = "game-links"
+const graphCollection = "graph"
 
 type DataBase struct {
 	db *mongo.Database
@@ -202,5 +203,28 @@ func (d *DataBase) saveGameLink(gameId int, similarities []GameSimilarity) {
 	gameLink.SimilarGames = similarities
 
 	_, err := gameLinksCollection.InsertOne(context.TODO(), gameLink)
+	check(err)
+}
+
+func (d *DataBase) findAllGameLinks() *mongo.Cursor {
+	findOptions := options.Find()
+	findOptions.SetSort(bson.D{{"_id", 1}})
+
+	gameLinkscollection := d.db.Collection(gameLinksCollection)
+
+	res, err := gameLinkscollection.Find(context.TODO(), bson.M{}, findOptions)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return res
+
+}
+
+func (d *DataBase) saveGraph(graph Graph) {
+	graphCollection := d.db.Collection(graphCollection)
+
+	_, err := graphCollection.InsertOne(context.TODO(), graph)
 	check(err)
 }

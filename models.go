@@ -48,3 +48,14 @@ type GameSimilarity struct {
 	Count         int
 	WeightedCount float32
 }
+
+type GameNode struct {
+	Name      string `json:"name"`
+	Id        int
+	Value     int      `json:"value"`
+	Links     []string `json:"linkWith"`
+	LinkedIds []int
+}
+type Graph struct {
+	Data []GameNode `json:"data"`
+}
