@@ -15,3 +15,8 @@ type UserLinkDTO struct {
 	UserId        string `bson:"_id,omitempty"`
 	GamesReviewed []int  `bson:"gamesReviewed,omitempty"`
 }
+
+type GameLinkDTO struct {
+	GameId       int              `bson:"_id,omitempty"`
+	SimilarGames []GameSimilarity `bson:"similarGames,omitempty"`
+}

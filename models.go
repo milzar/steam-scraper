@@ -42,3 +42,8 @@ type EntryDetails struct {
 }
 
 type EntryDetailsResponse map[string]EntryDetails
+
+type GameSimilarity struct {
+	GameId int
+	Count  int
+}

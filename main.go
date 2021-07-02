@@ -67,14 +67,39 @@ func main() {
 
 	//processUserLinks()
 
-	findSimilarGames(477160)
+	populateGameSimilarities()
 }
 
-func findSimilarGames(gameId int) {
+func populateGameSimilarities() {
+	defer timeTrack(time.Now(), "populateGameSimilarities")
+
+	var gameReviewsList []GameReviewDTO
+	cursor := database.findGameReviews()
+	err := cursor.All(context.TODO(), &gameReviewsList)
+	check(err)
+
+	for _, review := range gameReviewsList {
+		processGameLink(review.AppId)
+	}
+}
+
+func processGameLink(gameId int) {
+	log.Printf("Saving game link for %v \n", gameId)
+
+	similarities := findSimilarGames(gameId)
+
+	database.saveGameLink(gameId, similarities)
+}
+
+func findSimilarGames(gameId int) []GameSimilarity {
+	defer timeTrack(time.Now(), "findSimilarGames")
+
 	reviews := database.findGameReview(gameId)
 
 	userIds := reviews.Users
-
+	if len(userIds) == 0 {
+		return []GameSimilarity{}
+	}
 	userLinks := database.findUserLinks(userIds)
 
 	similarGameMap := make(map[int]int)
@@ -85,23 +110,16 @@ func findSimilarGames(gameId int) {
 		}
 	}
 
-	type kv struct {
-		Key   int
-		Value int
-	}
-
-	var sortedSlice []kv
+	var sortedSlice []GameSimilarity
 	for k, v := range similarGameMap {
-		sortedSlice = append(sortedSlice, kv{k, v})
+		sortedSlice = append(sortedSlice, GameSimilarity{k, v})
 	}
 
 	sort.Slice(sortedSlice, func(i, j int) bool {
-		return sortedSlice[i].Value < sortedSlice[j].Value
+		return sortedSlice[i].Count > sortedSlice[j].Count
 	})
-
-	for gameId, count := range sortedSlice {
-		log.Printf("%v %v \n", gameId, count)
-	}
+	//Exclude self
+	return sortedSlice[1:]
 }
 
 func processUserLinks() {

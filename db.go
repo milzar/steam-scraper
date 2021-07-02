@@ -14,6 +14,7 @@ const gamesCollectionName = "games"
 const storeEntriesCollection = "store-entries"
 const gameReviewsCollection = "game-reviews"
 const userLinksCollection = "user-links"
+const gameLinksCollection = "game-links"
 
 type DataBase struct {
 	db *mongo.Database
@@ -192,4 +193,16 @@ func (d *DataBase) findUserLinks(ids []string) []UserLinkDTO {
 	check(err)
 
 	return userLinks
+}
+
+func (d *DataBase) saveGameLink(gameId int, similarities []GameSimilarity) {
+	gameLinksCollection := d.db.Collection(gameLinksCollection)
+
+	var gameLink GameLinkDTO
+
+	gameLink.GameId = gameId
+	gameLink.SimilarGames = similarities
+
+	_, err := gameLinksCollection.InsertOne(context.TODO(), gameLink)
+	check(err)
 }
