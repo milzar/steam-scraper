@@ -92,31 +92,46 @@ func saveUserGameLinks(review GameReviewDTO) {
 	userIds := review.Users
 
 	log.Printf("Processing %v users\n", len(userIds))
-	for index, userId := range userIds {
-		if index%50 == 0 {
-			log.Printf("%.2f percent done", (float32(index)/float32(len(userIds)))*100)
-		}
-		userLink := database.findUserLink(userId)
 
-		if userLink.UserId != "" {
-			alreadyExists := reviewAlreadyExists(review, userLink)
-			if alreadyExists {
-				continue
-			}
-			userLink.GamesReviewed = append(userLink.GamesReviewed, review.AppId)
-		} else {
-			userLink.UserId = userId
-			userLink.GamesReviewed = []int{review.AppId}
-		}
-
-		database.updateUserLink(userLink)
+	userIdsMap := make(map[string]bool)
+	for _, userId := range userIds {
+		userIdsMap[userId] = true
 	}
+	log.Printf("Processing %v distinct users\n", len(userIdsMap))
+
+	var wg sync.WaitGroup
+
+	for userId := range userIdsMap {
+		wg.Add(1)
+		go saveUserGameLink(review.AppId, userId, &wg)
+	}
+
+	wg.Wait()
 	log.Println()
 }
 
-func reviewAlreadyExists(review GameReviewDTO, userLink UserLinkDTO) bool {
+func saveUserGameLink(gameId int, userId string, wg *sync.WaitGroup) {
+	defer wg.Done()
+
+	userLink := database.findUserLink(userId)
+
+	if userLink.UserId != "" {
+		alreadyExists := reviewAlreadyExists(gameId, userLink)
+		if alreadyExists {
+			return
+		}
+		userLink.GamesReviewed = append(userLink.GamesReviewed, gameId)
+	} else {
+		userLink.UserId = userId
+		userLink.GamesReviewed = []int{gameId}
+	}
+
+	database.updateUserLink(userLink)
+}
+
+func reviewAlreadyExists(gameId int, userLink UserLinkDTO) bool {
 	for _, games := range userLink.GamesReviewed {
-		if games == review.AppId {
+		if games == gameId {
 			return true
 		}
 	}
