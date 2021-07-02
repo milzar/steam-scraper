@@ -69,44 +69,47 @@ func main() {
 
 	//populateGameSimilarities()
 
-	generateGraph()
+	generateGraph(201870)
 }
 
-func generateGraph() {
+func generateGraph(gameId int) {
 	defer timeTrack(time.Now(), "generateGraph")
 
 	log.Println("Generating graph")
 
 	gameNodesMap := make(map[int]*GameNode)
+	reviewCountMap := make(map[int]int)
 
 	reviews := getAllGameReviews()
 	for _, review := range reviews {
-		gameId := review.AppId
-		gameNodesMap[gameId] = &GameNode{Id: review.AppId}
-		gameNodesMap[gameId].Value = len(review.Users)
+		reviewCountMap[review.AppId] = len(review.Users)
 	}
 
-	gameLinks := getAllGameLinks()
+	gameLink := database.findGameLink(gameId)
+	gameLink.SimilarGames = gameLink.SimilarGames[:20]
 
-	for _, gameLink := range gameLinks {
-		var relatedGames []int
-
-		for _, game := range gameLink.SimilarGames {
-			relatedGames = append(relatedGames, game.GameId)
-		}
-
-		gameNodesMap[gameLink.GameId].LinkedIds = relatedGames
-
+	var relatedGames []int
+	for _, similarGame := range gameLink.SimilarGames {
+		relatedGames = append(relatedGames, similarGame.GameId)
+		gameNodesMap[similarGame.GameId] = &GameNode{}
+		gameNodesMap[similarGame.GameId].Links = []string{}
+		gameNodesMap[similarGame.GameId].LinkedIds = []int{}
 	}
 
 	gameNameMap := populateGameNameMap()
 
+	gameNodesMap[gameId] = &GameNode{}
+	gameNodesMap[gameId].LinkedIds = relatedGames
+
+	//Fill in all names, size
 	for gameId, node := range gameNodesMap {
 		node.Name = gameNameMap[gameId]
 
 		for _, linkedId := range node.LinkedIds {
 			node.Links = append(node.Links, gameNameMap[linkedId])
 		}
+
+		node.Value = reviewCountMap[gameId]
 	}
 
 	var graph Graph

@@ -50,8 +50,7 @@ type GameSimilarity struct {
 }
 
 type GameNode struct {
-	Name      string `json:"name"`
-	Id        int
+	Name      string   `json:"name"`
 	Value     int      `json:"value"`
 	Links     []string `json:"linkWith"`
 	LinkedIds []int

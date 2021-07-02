@@ -222,6 +222,21 @@ func (d *DataBase) findAllGameLinks() *mongo.Cursor {
 
 }
 
+func (d *DataBase) findGameLink(id int) GameLinkDTO {
+	gameLinksCollection := d.db.Collection(gameLinksCollection)
+
+	res := gameLinksCollection.FindOne(context.TODO(), bson.M{"_id": id})
+
+	var gameLink GameLinkDTO
+
+	if res.Err() == nil {
+		err := res.Decode(&gameLink)
+		check(err)
+	}
+
+	return gameLink
+}
+
 func (d *DataBase) saveGraph(graph Graph) {
 	graphCollection := d.db.Collection(graphCollection)
 
