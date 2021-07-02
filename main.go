@@ -62,9 +62,9 @@ func main() {
 
 	//filterGames()
 
-	processReviews()
+	//processReviews()
 
-	//processUserLinks()
+	processUserLinks()
 }
 
 func processUserLinks() {
@@ -98,28 +98,29 @@ func saveUserGameLinks(review GameReviewDTO) {
 		}
 		userLink := database.findUserLink(userId)
 
-		alreadyExists := false
-
 		if userLink.UserId != "" {
-			for _, games := range userLink.GamesReviewed {
-				if games == review.AppId {
-					alreadyExists = true
-					break
-				}
+			alreadyExists := reviewAlreadyExists(review, userLink)
+			if alreadyExists {
+				continue
 			}
-			if !alreadyExists {
-				userLink.GamesReviewed = append(userLink.GamesReviewed, review.AppId)
-			}
+			userLink.GamesReviewed = append(userLink.GamesReviewed, review.AppId)
 		} else {
 			userLink.UserId = userId
 			userLink.GamesReviewed = []int{review.AppId}
 		}
 
-		if !alreadyExists {
-			database.updateUserLink(userLink)
-		}
+		database.updateUserLink(userLink)
 	}
 	log.Println()
+}
+
+func reviewAlreadyExists(review GameReviewDTO, userLink UserLinkDTO) bool {
+	for _, games := range userLink.GamesReviewed {
+		if games == review.AppId {
+			return true
+		}
+	}
+	return false
 }
 
 func processReviews() {
