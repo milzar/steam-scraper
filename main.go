@@ -88,7 +88,25 @@ func processGameLink(gameId int) {
 
 	similarities := findSimilarGames(gameId)
 
+	//similarities = addWeightedScore(similarities)
+
 	database.saveGameLink(gameId, similarities)
+}
+
+func addWeightedScore(similarities []GameSimilarity) []GameSimilarity {
+	var result []GameSimilarity
+	for _, game := range similarities {
+		reviewCount := len(database.findGameReview(game.GameId).Users)
+		log.Printf("\n\n no of reviews %v \n\n", reviewCount)
+		game.WeightedCount = float32(game.Count) / float32(reviewCount)
+
+		result = append(result, game)
+	}
+	sort.Slice(similarities, func(i, j int) bool {
+		return similarities[i].WeightedCount > similarities[j].WeightedCount
+	})
+
+	return result
 }
 
 func findSimilarGames(gameId int) []GameSimilarity {
@@ -112,7 +130,7 @@ func findSimilarGames(gameId int) []GameSimilarity {
 
 	var sortedSlice []GameSimilarity
 	for k, v := range similarGameMap {
-		sortedSlice = append(sortedSlice, GameSimilarity{k, v})
+		sortedSlice = append(sortedSlice, GameSimilarity{GameId: k, Count: v})
 	}
 
 	sort.Slice(sortedSlice, func(i, j int) bool {

@@ -122,8 +122,6 @@ func (d *DataBase) saveGameReview(review GameReviewDTO) {
 }
 
 func (d *DataBase) findGameReviews() *mongo.Cursor {
-	defer timeTrack(time.Now(), "findGameReviews")
-
 	findOptions := options.Find()
 	findOptions.SetSort(bson.D{{"_id", 1}})
 
