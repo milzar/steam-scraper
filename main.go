@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -64,7 +65,43 @@ func main() {
 
 	//processReviews()
 
-	processUserLinks()
+	//processUserLinks()
+
+	findSimilarGames(477160)
+}
+
+func findSimilarGames(gameId int) {
+	reviews := database.findGameReview(gameId)
+
+	userIds := reviews.Users
+
+	userLinks := database.findUserLinks(userIds)
+
+	similarGameMap := make(map[int]int)
+
+	for _, userLink := range userLinks {
+		for _, game := range userLink.GamesReviewed {
+			similarGameMap[game]++
+		}
+	}
+
+	type kv struct {
+		Key   int
+		Value int
+	}
+
+	var sortedSlice []kv
+	for k, v := range similarGameMap {
+		sortedSlice = append(sortedSlice, kv{k, v})
+	}
+
+	sort.Slice(sortedSlice, func(i, j int) bool {
+		return sortedSlice[i].Value < sortedSlice[j].Value
+	})
+
+	for gameId, count := range sortedSlice {
+		log.Printf("%v %v \n", gameId, count)
+	}
 }
 
 func processUserLinks() {

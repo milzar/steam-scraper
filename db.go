@@ -137,6 +137,21 @@ func (d *DataBase) findGameReviews() *mongo.Cursor {
 	return res
 }
 
+func (d *DataBase) findGameReview(gameId int) GameReviewDTO {
+	defer timeTrack(time.Now(), "findGameReview")
+
+	gameReviewsCollection := d.db.Collection(gameReviewsCollection)
+
+	res := gameReviewsCollection.FindOne(context.TODO(), bson.M{"_id": gameId})
+
+	var game GameReviewDTO
+	err := res.Decode(&game)
+
+	check(err)
+
+	return game
+}
+
 func (d *DataBase) findUserLink(userId string) UserLinkDTO {
 	userLinksCollection := d.db.Collection(userLinksCollection)
 
@@ -163,4 +178,18 @@ func (d *DataBase) updateUserLink(link UserLinkDTO) {
 	}
 	_, err := userLinksCollection.UpdateOne(context.TODO(), bson.M{"_id": link.UserId}, update, updateOptions)
 	check(err)
+}
+
+func (d *DataBase) findUserLinks(ids []string) []UserLinkDTO {
+	userLinksCollection := d.db.Collection(userLinksCollection)
+
+	cursor, err := userLinksCollection.Find(context.TODO(), bson.M{"_id": bson.M{"$in": ids}})
+	check(err)
+
+	var userLinks []UserLinkDTO
+
+	err = cursor.All(context.TODO(), &userLinks)
+	check(err)
+
+	return userLinks
 }
