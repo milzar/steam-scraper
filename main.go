@@ -68,6 +68,8 @@ func main() {
 }
 
 func processUserLinks() {
+	defer timeTrack(time.Now(), "processUserLinks")
+
 	log.Println("Processing User links")
 
 	cursor := database.findGameReviews()
@@ -89,7 +91,11 @@ func saveUserGameLinks(review GameReviewDTO) {
 
 	userIds := review.Users
 
-	for _, userId := range userIds {
+	log.Printf("Processing %v users\n", len(userIds))
+	for index, userId := range userIds {
+		if index%50 == 0 {
+			log.Printf("%.2f percent done", (float32(index)/float32(len(userIds)))*100)
+		}
 		userLink := database.findUserLink(userId)
 
 		alreadyExists := false
@@ -113,6 +119,7 @@ func saveUserGameLinks(review GameReviewDTO) {
 			database.updateUserLink(userLink)
 		}
 	}
+	log.Println()
 }
 
 func processReviews() {
