@@ -69,7 +69,7 @@ func main() {
 
 	//populateGameSimilarities()
 
-	generateGraph(201870)
+	generateGraph(892970)
 }
 
 func generateGraph(gameId int) {
